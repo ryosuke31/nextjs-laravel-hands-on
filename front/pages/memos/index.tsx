@@ -3,6 +3,7 @@ import type { NextPage } from "next";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { axiosApi } from "../../lib/axios";
+import { useUserState } from "../../atoms/userAtom";
 
 type Memo = {
   title: string;
@@ -35,8 +36,14 @@ type Memo = {
 const Memo: NextPage = () => {
   const router = useRouter();
   const [memos, setMemos] = useState<Memo[]>([]);
+
+  const { user } = useUserState();
   // 初回レンダリング時にAPIリクエスト
   useEffect(() => {
+    if (!user) {
+      router.push("/");
+      return;
+    }
     axiosApi
       .get("/api/memos")
       .then((response: AxiosResponse) => {
@@ -44,7 +51,7 @@ const Memo: NextPage = () => {
         setMemos(response.data.data);
       })
       .catch((err: AxiosError) => console.log(err.response));
-  }, []);
+  }, [user, router]);
 
   return (
     <div className="w-2/3 mx-auto mt-32">

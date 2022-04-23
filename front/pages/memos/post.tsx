@@ -1,8 +1,10 @@
 import { AxiosError, AxiosResponse } from "axios";
 import type { NextPage } from "next";
-import { ChangeEvent, useState } from "react";
+import { useRouter } from "next/router";
+import { ChangeEvent, useEffect, useState } from "react";
 import { RequiredMark } from "../../components/RequiredMark";
 import { axiosApi } from "../../lib/axios";
+import { useUserState } from "../../atoms/userAtom";
 
 // POSTデータの型
 type MemoForm = {
@@ -10,16 +12,32 @@ type MemoForm = {
   body: string;
 };
 
+// バリデーションメッセージの型
+type Validation = {
+  title?: string;
+  body?: string;
+};
+
 const Post: NextPage = () => {
+  const router = useRouter();
+  const { user } = useUserState();
+
+  useEffect(() => {
+    // ログイン中か判定
+    if (!user) {
+      router.push("/");
+      return;
+    }
+  }, [user, router]);
+
   // state定義
   const [memoForm, setMemoForm] = useState<MemoForm>({
     title: "",
     body: "",
   });
-  const [validation, setValidation] = useState<MemoForm>({
-    title: "",
-    body: "",
-  });
+
+  // 型をValidationに変更して初期値を空オブジェクトに変更
+  const [validation, setValidation] = useState<Validation>({});
 
   // POSTデータの更新
   const updateMemoForm = (
@@ -30,6 +48,9 @@ const Post: NextPage = () => {
 
   // メモの登録
   const createMemo = () => {
+    // バリデーションメッセージの初期化
+    setValidation({});
+
     axiosApi
       // CSRF保護の初期化
       .get("/sanctum/csrf-cookie")
@@ -41,7 +62,21 @@ const Post: NextPage = () => {
             console.log(response.data);
           })
           .catch((err: AxiosError) => {
-            console.log(err.response);
+            // バリデーションエラー
+            if (err.response?.status === 422) {
+              const errors = err.response?.data.errors;
+              // state更新用のオブジェクトを別で定義
+              const validationMessages: { [index: string]: string } =
+                {} as Validation;
+              Object.keys(errors).map((key: string) => {
+                validationMessages[key] = errors[key][0];
+              });
+              // state更新用オブジェクトに更新
+              setValidation(validationMessages);
+            }
+            if (err.response?.status === 500) {
+              alert("システムエラーです！！");
+            }
           });
       });
   };
@@ -61,6 +96,9 @@ const Post: NextPage = () => {
             value={memoForm.title}
             onChange={updateMemoForm}
           />
+          {validation.title && (
+            <p className="py-3 text-red-500">{validation.title}</p>
+          )}
         </div>
         <div className="mb-5">
           <div className="flex justify-start my-2">
@@ -76,6 +114,9 @@ const Post: NextPage = () => {
             value={memoForm.body}
             onChange={updateMemoForm}
           />
+          {validation.body && (
+            <p className="py-3 text-red-500">{validation.body}</p>
+          )}
         </div>
         <div className="text-center">
           <button
