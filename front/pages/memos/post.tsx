@@ -3,8 +3,8 @@ import type { NextPage } from "next";
 import { useRouter } from "next/router";
 import { ChangeEvent, useEffect, useState } from "react";
 import { RequiredMark } from "../../components/RequiredMark";
+import { useAuth } from "../../hooks/useAuth";
 import { axiosApi } from "../../lib/axios";
-import { useUserState } from "../../atoms/userAtom";
 
 // POSTデータの型
 type MemoForm = {
@@ -20,15 +20,18 @@ type Validation = {
 
 const Post: NextPage = () => {
   const router = useRouter();
-  const { user } = useUserState();
+  const { checkLoggedIn } = useAuth();
 
   useEffect(() => {
-    // ログイン中か判定
-    if (!user) {
-      router.push("/");
-      return;
-    }
-  }, [user, router]);
+    const init = async () => {
+      // ログイン中か判定
+      const res: boolean = await checkLoggedIn();
+      if (!res) {
+        router.push("/");
+      }
+    };
+    init();
+  }, []);
 
   // state定義
   const [memoForm, setMemoForm] = useState<MemoForm>({
