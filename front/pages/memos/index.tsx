@@ -4,6 +4,7 @@ import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { axiosApi } from "../../lib/axios";
 import { useAuth } from "../../hooks/useAuth";
+import { Loading } from "../../components/Loading";
 
 type Memo = {
   title: string;
@@ -36,6 +37,7 @@ type Memo = {
 const Memo: NextPage = () => {
   const router = useRouter();
   const [memos, setMemos] = useState<Memo[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const { checkLoggedIn } = useAuth();
   // 初回レンダリング時にAPIリクエスト
@@ -52,10 +54,13 @@ const Memo: NextPage = () => {
           console.log(response.data);
           setMemos(response.data.data);
         })
-        .catch((err: AxiosError) => console.log(err.response));
+        .catch((err: AxiosError) => console.log(err.response))
+        .finally(() => setIsLoading(false));
     };
     init();
   }, []);
+
+  if (isLoading) return <Loading />;
 
   return (
     <div className="w-2/3 mx-auto mt-32">
